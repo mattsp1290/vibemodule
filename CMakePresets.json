@@ -1,0 +1,110 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 21,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "debug",
+            "inherits": "base",
+            "displayName": "Debug",
+            "description": "Debug build with all warnings",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "VIBEMODULE_BUILD_TESTS": "ON"
+            }
+        },
+        {
+            "name": "release",
+            "inherits": "base",
+            "displayName": "Release",
+            "description": "Optimized release build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "VIBEMODULE_BUILD_TESTS": "OFF"
+            }
+        },
+        {
+            "name": "juce-debug",
+            "inherits": "debug",
+            "displayName": "JUCE Plugin (Debug)",
+            "description": "Debug build for JUCE VST plugin",
+            "cacheVariables": {
+                "VIBEMODULE_BUILD_JUCE": "ON",
+                "VIBEMODULE_BUILD_SSP": "OFF",
+                "VIBEMODULE_BUILD_DAISY": "OFF"
+            }
+        },
+        {
+            "name": "juce-release",
+            "inherits": "release",
+            "displayName": "JUCE Plugin (Release)",
+            "description": "Release build for JUCE VST plugin",
+            "cacheVariables": {
+                "VIBEMODULE_BUILD_JUCE": "ON",
+                "VIBEMODULE_BUILD_SSP": "OFF",
+                "VIBEMODULE_BUILD_DAISY": "OFF"
+            }
+        },
+        {
+            "name": "tests",
+            "inherits": "debug",
+            "displayName": "Tests Only",
+            "description": "Build tests only, no plugins",
+            "cacheVariables": {
+                "VIBEMODULE_BUILD_JUCE": "OFF",
+                "VIBEMODULE_BUILD_SSP": "OFF",
+                "VIBEMODULE_BUILD_DAISY": "OFF",
+                "VIBEMODULE_BUILD_TESTS": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "debug",
+            "configurePreset": "debug"
+        },
+        {
+            "name": "release",
+            "configurePreset": "release"
+        },
+        {
+            "name": "juce-debug",
+            "configurePreset": "juce-debug"
+        },
+        {
+            "name": "juce-release",
+            "configurePreset": "juce-release"
+        },
+        {
+            "name": "tests",
+            "configurePreset": "tests"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "tests",
+            "configurePreset": "tests",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "debug",
+            "configurePreset": "debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        }
+    ]
+}
