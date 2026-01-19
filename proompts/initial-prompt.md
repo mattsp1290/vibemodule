@@ -11,16 +11,30 @@ Create a thorough, production-ready task graph. Include all necessary setup, imp
 ## Project Information
 
 ### Links to Relevant Documentation
-{PLEASE FILL THIS OUT}
+- JUICE (https://github.com/juce-framework/JUCE)
+
+- Percussa SSP (https://forum.percussa.com/)
+
+- Daisy Patch (https://daisy.audio/product/Daisy-Patch/)
+
+- Clouds (https://github.com/pichenettes/eurorack/tree/master/clouds)
+
+
 
 ### Project Description
-{PLEASE FILL THIS OUT}
+We are building a C++ project using CPM and CMake. This project will have three different build targets. One using JUICE to create a VST for Windows and Mac. Another targeting the Percussa SSP. And finally one targetting the Daisy Patch. We just want to port the Clouds reverb.
 
 ### Technical Stack
-{PLEASE FILL THIS OUT}
+- C++ (latest version supported on call 3 platforms)
+- CPM
+- CMake
+
 
 ### Specific Requirements
-{PLEASE FILL THIS OUT}
+- Modular code 
+- VST for Windows and Mac
+- VST for the Percussa SSP
+- Daisy Patch support
 
 ---
 
