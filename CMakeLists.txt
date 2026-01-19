@@ -47,7 +47,7 @@ option(VIBEMODULE_BUILD_TESTS "Build unit tests" ON)
 
 # Add subdirectories
 # Core DSP library (always built)
-# add_subdirectory(libs/clouds-dsp)
+add_subdirectory(libs/clouds-dsp)
 
 # Platform-specific builds
 # if(VIBEMODULE_BUILD_JUCE)
