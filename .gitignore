@@ -1,1 +1,34 @@
 .beads/.cache/
+
+# Build directories
+build/
+cmake-build-*/
+out/
+
+# CPM cache
+.cpm_cache/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Compiled objects
+*.o
+*.obj
+*.a
+*.lib
+
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Daisy firmware
+*.bin
+*.hex
+*.elf
+*.map
