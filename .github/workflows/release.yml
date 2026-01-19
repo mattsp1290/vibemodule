@@ -1,0 +1,159 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-juce-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          pkg-config \
+          libasound2-dev \
+          libfreetype6-dev \
+          libx11-dev \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxcursor-dev \
+          libgl1-mesa-dev \
+          libcurl4-openssl-dev \
+          libwebkit2gtk-4.0-dev
+
+    - name: Setup CPM cache
+      uses: actions/cache@v4
+      with:
+        path: .cpm_cache
+        key: ${{ runner.os }}-cpm-juce-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-cpm-juce-
+
+    - name: Configure CMake
+      run: cmake --preset juce-release
+
+    - name: Build
+      run: cmake --build --preset juce-release
+
+    - name: Package VST3
+      run: |
+        mkdir -p release/linux
+        cp -r build/juce-release/platforms/juce/CloudsReverb_artefacts/Release/VST3/* release/linux/
+
+    - name: Upload Linux VST3
+      uses: actions/upload-artifact@v4
+      with:
+        name: CloudsReverb-Linux-VST3
+        path: release/linux/
+
+  build-juce-macos:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup CPM cache
+      uses: actions/cache@v4
+      with:
+        path: .cpm_cache
+        key: ${{ runner.os }}-cpm-juce-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-cpm-juce-
+
+    - name: Configure CMake
+      run: cmake --preset juce-release
+
+    - name: Build
+      run: cmake --build --preset juce-release
+
+    - name: Package VST3 and AU
+      run: |
+        mkdir -p release/macos
+        cp -r build/juce-release/platforms/juce/CloudsReverb_artefacts/Release/VST3/* release/macos/ || true
+        cp -r build/juce-release/platforms/juce/CloudsReverb_artefacts/Release/AU/* release/macos/ || true
+
+    - name: Upload macOS Plugins
+      uses: actions/upload-artifact@v4
+      with:
+        name: CloudsReverb-macOS
+        path: release/macos/
+
+  build-juce-windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup CPM cache
+      uses: actions/cache@v4
+      with:
+        path: .cpm_cache
+        key: ${{ runner.os }}-cpm-juce-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-cpm-juce-
+
+    - name: Configure CMake
+      run: cmake --preset juce-release
+
+    - name: Build
+      run: cmake --build --preset juce-release --config Release
+
+    - name: Package VST3
+      run: |
+        mkdir -p release/windows
+        Copy-Item -Recurse "build/juce-release/platforms/juce/CloudsReverb_artefacts/Release/VST3/*" "release/windows/"
+      shell: pwsh
+
+    - name: Upload Windows VST3
+      uses: actions/upload-artifact@v4
+      with:
+        name: CloudsReverb-Windows-VST3
+        path: release/windows/
+
+  create-release:
+    needs: [build-juce-linux, build-juce-macos, build-juce-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Download Linux artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: CloudsReverb-Linux-VST3
+        path: artifacts/linux
+
+    - name: Download macOS artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: CloudsReverb-macOS
+        path: artifacts/macos
+
+    - name: Download Windows artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: CloudsReverb-Windows-VST3
+        path: artifacts/windows
+
+    - name: Create release archives
+      run: |
+        cd artifacts
+        zip -r ../CloudsReverb-Linux-VST3.zip linux/
+        zip -r ../CloudsReverb-macOS.zip macos/
+        zip -r ../CloudsReverb-Windows-VST3.zip windows/
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          CloudsReverb-Linux-VST3.zip
+          CloudsReverb-macOS.zip
+          CloudsReverb-Windows-VST3.zip
+        generate_release_notes: true
+        draft: false
+        prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
