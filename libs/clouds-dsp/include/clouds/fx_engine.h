@@ -101,7 +101,7 @@ template<
 class FxEngine {
  public:
   typedef typename DataType<format>::T T;
-  FxEngine() { }
+  FxEngine() : write_ptr_(0), buffer_(nullptr) { }
   ~FxEngine() { }
 
   void Init(T* buffer) {
@@ -143,7 +143,7 @@ class FxEngine {
   class Context {
    friend class FxEngine;
    public:
-    Context() { }
+    Context() : accumulator_(0.0f), previous_read_(0.0f), lfo_value_{0.0f, 0.0f}, buffer_(nullptr), write_ptr_(0) { }
     ~Context() { }
 
     inline void Load(float value) {

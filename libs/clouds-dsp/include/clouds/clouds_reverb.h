@@ -30,7 +30,15 @@ class CloudsReverb {
   // Buffer size for the delay lines (must be power of 2)
   static constexpr size_t kBufferSize = 32768;
 
-  CloudsReverb() {
+  CloudsReverb()
+      : sample_rate_(48000.0f),
+        amount_(0.5f),
+        input_gain_(0.5f),
+        reverb_time_(0.5f),
+        diffusion_(0.625f),
+        lp_(0.7f),
+        lp_decay_1_(0.0f),
+        lp_decay_2_(0.0f) {
     std::memset(buffer_, 0, sizeof(buffer_));
   }
 
@@ -41,10 +49,10 @@ class CloudsReverb {
     sample_rate_ = sample_rate;
     engine_.Init(buffer_);
 
-    // Scale LFO frequencies for sample rate
-    const float rate_scale = 32000.0f / sample_rate_;
-    engine_.SetLFOFrequency(LFO_1, 0.5f * rate_scale);
-    engine_.SetLFOFrequency(LFO_2, 0.3f * rate_scale);
+    // Set LFO frequencies (very slow for subtle modulation)
+    // These are already multiplied by 32 inside SetLFOFrequency
+    engine_.SetLFOFrequency(LFO_1, 0.5f / sample_rate_);
+    engine_.SetLFOFrequency(LFO_2, 0.3f / sample_rate_);
 
     // Default parameters
     amount_ = 0.5f;
@@ -188,26 +196,27 @@ class CloudsReverb {
 
       // Left channel: read from del2, through AP pair, to del1
       c.Load(apout);
-      c.Interpolate(del2, 6261.0f, LFO_2, 50.0f, krt);
+      // Use safer delay offsets that stay within buffer bounds
+      c.Interpolate(del2, 6200.0f, LFO_2, 40.0f, krt);
       c.Lp(lp_1, klp);
       c.Read(dap1a TAIL, -kap);
       c.WriteAllPass(dap1a, kap);
       c.Read(dap1b TAIL, kap);
       c.WriteAllPass(dap1b, -kap);
-      c.Write(del1, 2.0f);
+      c.Write(del1, 1.0f);
       c.Write(wet, 0.0f);
 
       in_out->l += (wet - in_out->l) * amount;
 
       // Right channel: read from del1, through AP pair, to del2
       c.Load(apout);
-      c.Interpolate(del1, 4460.0f, LFO_1, 40.0f, krt);
+      c.Interpolate(del1, 4400.0f, LFO_1, 30.0f, krt);
       c.Lp(lp_2, klp);
       c.Read(dap2a TAIL, kap);
       c.WriteAllPass(dap2a, -kap);
       c.Read(dap2b TAIL, -kap);
       c.WriteAllPass(dap2b, kap);
-      c.Write(del2, 2.0f);
+      c.Write(del2, 1.0f);
       c.Write(wet, 0.0f);
 
       in_out->r += (wet - in_out->r) * amount;

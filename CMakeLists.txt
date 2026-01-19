@@ -47,10 +47,10 @@ endif()
 # endif()
 
 # Tests
-# if(VIBEMODULE_BUILD_TESTS)
-#     enable_testing()
-#     add_subdirectory(tests)
-# endif()
+if(VIBEMODULE_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 # Print configuration summary
 message(STATUS "")

@@ -42,7 +42,7 @@ enum CosineOscillatorMode {
 
 class CosineOscillator {
  public:
-  CosineOscillator() { }
+  CosineOscillator() : y1_(0.0f), y0_(0.5f), iir_coefficient_(0.0f), initial_amplitude_(0.0f) { }
   ~CosineOscillator() { }
 
   template<CosineOscillatorMode mode>
