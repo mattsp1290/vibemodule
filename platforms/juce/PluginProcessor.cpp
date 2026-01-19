@@ -105,11 +105,29 @@ void CloudsReverbProcessor::changeProgramName(int, const juce::String&) {}
 void CloudsReverbProcessor::prepareToPlay(double sampleRate, int)
 {
     reverb.Init(static_cast<float>(sampleRate));
-    reverb.SetAmount(*amountParam);
-    reverb.SetInputGain(*inputGainParam);
-    reverb.SetTime(*timeParam);
-    reverb.SetDiffusion(*diffusionParam);
-    reverb.SetLowpassCutoff(*lpParam);
+
+    // Initialize smoothed values with current parameter values
+    smoothedAmount.reset(sampleRate, kSmoothingTimeSeconds);
+    smoothedAmount.setCurrentAndTargetValue(*amountParam);
+
+    smoothedInputGain.reset(sampleRate, kSmoothingTimeSeconds);
+    smoothedInputGain.setCurrentAndTargetValue(*inputGainParam);
+
+    smoothedTime.reset(sampleRate, kSmoothingTimeSeconds);
+    smoothedTime.setCurrentAndTargetValue(*timeParam);
+
+    smoothedDiffusion.reset(sampleRate, kSmoothingTimeSeconds);
+    smoothedDiffusion.setCurrentAndTargetValue(*diffusionParam);
+
+    smoothedLp.reset(sampleRate, kSmoothingTimeSeconds);
+    smoothedLp.setCurrentAndTargetValue(*lpParam);
+
+    // Apply initial values
+    reverb.SetAmount(smoothedAmount.getCurrentValue());
+    reverb.SetInputGain(smoothedInputGain.getCurrentValue());
+    reverb.SetTime(smoothedTime.getCurrentValue());
+    reverb.SetDiffusion(smoothedDiffusion.getCurrentValue());
+    reverb.SetLowpassCutoff(smoothedLp.getCurrentValue());
 }
 
 void CloudsReverbProcessor::releaseResources()
@@ -135,7 +153,37 @@ void CloudsReverbProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     auto* leftChannel = buffer.getWritePointer(0);
     auto* rightChannel = buffer.getWritePointer(1);
 
-    reverb.Process(leftChannel, rightChannel, static_cast<size_t>(buffer.getNumSamples()));
+    // Update smoothed parameters if they're still ramping
+    if (smoothedAmount.isSmoothing() || smoothedInputGain.isSmoothing() ||
+        smoothedTime.isSmoothing() || smoothedDiffusion.isSmoothing() ||
+        smoothedLp.isSmoothing()) {
+        // Process in small chunks to apply smoothed parameter updates
+        const int numSamples = buffer.getNumSamples();
+        constexpr int kChunkSize = 32;
+
+        for (int offset = 0; offset < numSamples; offset += kChunkSize) {
+            const int samplesToProcess = std::min(kChunkSize, numSamples - offset);
+
+            // Skip ahead in smoothing and apply current values
+            smoothedAmount.skip(samplesToProcess);
+            smoothedInputGain.skip(samplesToProcess);
+            smoothedTime.skip(samplesToProcess);
+            smoothedDiffusion.skip(samplesToProcess);
+            smoothedLp.skip(samplesToProcess);
+
+            reverb.SetAmount(smoothedAmount.getCurrentValue());
+            reverb.SetInputGain(smoothedInputGain.getCurrentValue());
+            reverb.SetTime(smoothedTime.getCurrentValue());
+            reverb.SetDiffusion(smoothedDiffusion.getCurrentValue());
+            reverb.SetLowpassCutoff(smoothedLp.getCurrentValue());
+
+            reverb.Process(leftChannel + offset, rightChannel + offset,
+                           static_cast<size_t>(samplesToProcess));
+        }
+    } else {
+        // No smoothing needed, process entire buffer at once
+        reverb.Process(leftChannel, rightChannel, static_cast<size_t>(buffer.getNumSamples()));
+    }
 }
 
 bool CloudsReverbProcessor::hasEditor() const { return true; }
@@ -162,16 +210,17 @@ void CloudsReverbProcessor::setStateInformation(const void* data, int sizeInByte
 
 void CloudsReverbProcessor::parameterChanged(const juce::String& parameterID, float newValue)
 {
+    // Set target values for smoothed parameters - the actual update happens in processBlock
     if (parameterID == "amount")
-        reverb.SetAmount(newValue);
+        smoothedAmount.setTargetValue(newValue);
     else if (parameterID == "input_gain")
-        reverb.SetInputGain(newValue);
+        smoothedInputGain.setTargetValue(newValue);
     else if (parameterID == "time")
-        reverb.SetTime(newValue);
+        smoothedTime.setTargetValue(newValue);
     else if (parameterID == "diffusion")
-        reverb.SetDiffusion(newValue);
+        smoothedDiffusion.setTargetValue(newValue);
     else if (parameterID == "lp")
-        reverb.SetLowpassCutoff(newValue);
+        smoothedLp.setTargetValue(newValue);
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

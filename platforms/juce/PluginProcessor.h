@@ -50,5 +50,14 @@ private:
     std::atomic<float>* diffusionParam = nullptr;
     std::atomic<float>* lpParam = nullptr;
 
+    // Smoothed parameter values for zipper-noise-free transitions
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> smoothedAmount;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> smoothedInputGain;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> smoothedTime;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> smoothedDiffusion;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> smoothedLp;
+
+    static constexpr double kSmoothingTimeSeconds = 0.02;  // 20ms smoothing
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CloudsReverbProcessor)
 };
