@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PluginProcessor.h"
+#include "CloudsLookAndFeel.h"
 
 class CloudsReverbEditor : public juce::AudioProcessorEditor
 {
@@ -13,6 +14,7 @@ public:
 
 private:
     CloudsReverbProcessor& processorRef;
+    CloudsLookAndFeel customLookAndFeel;
 
     juce::Slider amountSlider;
     juce::Slider inputGainSlider;
