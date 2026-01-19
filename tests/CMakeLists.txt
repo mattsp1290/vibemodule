@@ -19,6 +19,7 @@ add_executable(vibemodule_tests
     test_clouds_reverb.cpp
     test_stmlib_dsp.cpp
     test_fx_engine.cpp
+    test_allpass.cpp
 )
 
 target_link_libraries(vibemodule_tests
