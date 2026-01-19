@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            cmake_preset: tests
+          - os: macos-latest
+            cmake_preset: tests
+          - os: windows-latest
+            cmake_preset: tests
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup CPM cache
+      uses: actions/cache@v4
+      with:
+        path: .cpm_cache
+        key: ${{ runner.os }}-cpm-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-cpm-
+
+    - name: Configure CMake
+      run: cmake --preset ${{ matrix.cmake_preset }}
+
+    - name: Build
+      run: cmake --build --preset ${{ matrix.cmake_preset }}
+
+    - name: Test
+      run: ctest --preset ${{ matrix.cmake_preset }}
+
+  build-juce-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          pkg-config \
+          libasound2-dev \
+          libfreetype6-dev \
+          libx11-dev \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxcursor-dev \
+          libgl1-mesa-dev \
+          libcurl4-openssl-dev \
+          libwebkit2gtk-4.0-dev
+
+    - name: Setup CPM cache
+      uses: actions/cache@v4
+      with:
+        path: .cpm_cache
+        key: ${{ runner.os }}-cpm-juce-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-cpm-juce-
+
+    - name: Configure CMake
+      run: cmake --preset juce-release
+
+    - name: Build
+      run: cmake --build --preset juce-release
+
+  build-juce-macos:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup CPM cache
+      uses: actions/cache@v4
+      with:
+        path: .cpm_cache
+        key: ${{ runner.os }}-cpm-juce-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-cpm-juce-
+
+    - name: Configure CMake
+      run: cmake --preset juce-release
+
+    - name: Build
+      run: cmake --build --preset juce-release
+
+  build-juce-windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup CPM cache
+      uses: actions/cache@v4
+      with:
+        path: .cpm_cache
+        key: ${{ runner.os }}-cpm-juce-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-cpm-juce-
+
+    - name: Configure CMake
+      run: cmake --preset juce-release
+
+    - name: Build
+      run: cmake --build --preset juce-release
