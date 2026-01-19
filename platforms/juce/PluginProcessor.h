@@ -3,6 +3,15 @@
 #include <JuceHeader.h>
 #include <clouds/clouds_reverb.h>
 
+struct ReverbPreset {
+    juce::String name;
+    float amount;
+    float inputGain;
+    float time;
+    float diffusion;
+    float lp;
+};
+
 class CloudsReverbProcessor : public juce::AudioProcessor,
                                public juce::AudioProcessorValueTreeState::Listener
 {
@@ -33,6 +42,8 @@ public:
     const juce::String getProgramName(int index) override;
     void changeProgramName(int index, const juce::String& newName) override;
 
+    static const std::vector<ReverbPreset>& getFactoryPresets();
+
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
@@ -58,6 +69,8 @@ private:
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> smoothedLp;
 
     static constexpr double kSmoothingTimeSeconds = 0.02;  // 20ms smoothing
+
+    int currentProgram = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CloudsReverbProcessor)
 };

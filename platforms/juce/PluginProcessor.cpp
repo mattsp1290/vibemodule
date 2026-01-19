@@ -1,6 +1,25 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+// Factory presets
+static const std::vector<ReverbPreset> kFactoryPresets = {
+    {"Default",       0.50f, 0.50f, 0.50f, 0.625f, 0.70f},
+    {"Small Room",    0.30f, 0.40f, 0.20f, 0.50f,  0.50f},
+    {"Large Hall",    0.50f, 0.50f, 0.60f, 0.625f, 0.60f},
+    {"Cathedral",     0.60f, 0.45f, 0.80f, 0.70f,  0.50f},
+    {"Ambient Pad",   0.80f, 0.50f, 0.85f, 0.80f,  0.40f},
+    {"Shimmer",       0.60f, 0.60f, 0.75f, 0.70f,  0.90f},
+    {"Vintage Plate", 0.40f, 0.60f, 0.40f, 0.70f,  0.35f},
+    {"Tight Ambience",0.25f, 0.45f, 0.15f, 0.55f,  0.65f},
+    {"Dark Space",    0.55f, 0.50f, 0.70f, 0.65f,  0.25f},
+    {"Infinite",      0.70f, 0.40f, 0.95f, 0.75f,  0.45f},
+};
+
+const std::vector<ReverbPreset>& CloudsReverbProcessor::getFactoryPresets()
+{
+    return kFactoryPresets;
+}
+
 static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
@@ -96,11 +115,47 @@ bool CloudsReverbProcessor::producesMidi() const { return false; }
 bool CloudsReverbProcessor::isMidiEffect() const { return false; }
 double CloudsReverbProcessor::getTailLengthSeconds() const { return 5.0; }
 
-int CloudsReverbProcessor::getNumPrograms() { return 1; }
-int CloudsReverbProcessor::getCurrentProgram() { return 0; }
-void CloudsReverbProcessor::setCurrentProgram(int) {}
-const juce::String CloudsReverbProcessor::getProgramName(int) { return {}; }
-void CloudsReverbProcessor::changeProgramName(int, const juce::String&) {}
+int CloudsReverbProcessor::getNumPrograms()
+{
+    return static_cast<int>(kFactoryPresets.size());
+}
+
+int CloudsReverbProcessor::getCurrentProgram()
+{
+    return currentProgram;
+}
+
+void CloudsReverbProcessor::setCurrentProgram(int index)
+{
+    if (index >= 0 && index < static_cast<int>(kFactoryPresets.size())) {
+        currentProgram = index;
+        const auto& preset = kFactoryPresets[static_cast<size_t>(index)];
+
+        // Apply preset values to parameters
+        if (auto* param = parameters.getParameter("amount"))
+            param->setValueNotifyingHost(preset.amount);
+        if (auto* param = parameters.getParameter("input_gain"))
+            param->setValueNotifyingHost(preset.inputGain);
+        if (auto* param = parameters.getParameter("time"))
+            param->setValueNotifyingHost(preset.time);
+        if (auto* param = parameters.getParameter("diffusion"))
+            param->setValueNotifyingHost(preset.diffusion);
+        if (auto* param = parameters.getParameter("lp"))
+            param->setValueNotifyingHost(preset.lp);
+    }
+}
+
+const juce::String CloudsReverbProcessor::getProgramName(int index)
+{
+    if (index >= 0 && index < static_cast<int>(kFactoryPresets.size()))
+        return kFactoryPresets[static_cast<size_t>(index)].name;
+    return {};
+}
+
+void CloudsReverbProcessor::changeProgramName(int, const juce::String&)
+{
+    // Factory presets are read-only
+}
 
 void CloudsReverbProcessor::prepareToPlay(double sampleRate, int)
 {
