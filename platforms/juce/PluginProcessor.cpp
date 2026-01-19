@@ -1,0 +1,180 @@
+#include "PluginProcessor.h"
+#include "PluginEditor.h"
+
+static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
+{
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{"amount", 1},
+        "Amount",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
+        0.5f,
+        juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(value * 100.0f, 0) + "%"; },
+        nullptr));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{"input_gain", 1},
+        "Input Gain",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
+        0.5f,
+        juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(value * 100.0f, 0) + "%"; },
+        nullptr));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{"time", 1},
+        "Time",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
+        0.5f,
+        juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(value * 100.0f, 0) + "%"; },
+        nullptr));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{"diffusion", 1},
+        "Diffusion",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
+        0.625f,
+        juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(value * 100.0f, 0) + "%"; },
+        nullptr));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{"lp", 1},
+        "LP Filter",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
+        0.7f,
+        juce::String(),
+        juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(value * 100.0f, 0) + "%"; },
+        nullptr));
+
+    return { params.begin(), params.end() };
+}
+
+CloudsReverbProcessor::CloudsReverbProcessor()
+    : AudioProcessor(BusesProperties()
+                     .withInput("Input", juce::AudioChannelSet::stereo(), true)
+                     .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
+      parameters(*this, nullptr, juce::Identifier("CloudsReverb"), createParameterLayout())
+{
+    amountParam = parameters.getRawParameterValue("amount");
+    inputGainParam = parameters.getRawParameterValue("input_gain");
+    timeParam = parameters.getRawParameterValue("time");
+    diffusionParam = parameters.getRawParameterValue("diffusion");
+    lpParam = parameters.getRawParameterValue("lp");
+
+    parameters.addParameterListener("amount", this);
+    parameters.addParameterListener("input_gain", this);
+    parameters.addParameterListener("time", this);
+    parameters.addParameterListener("diffusion", this);
+    parameters.addParameterListener("lp", this);
+}
+
+CloudsReverbProcessor::~CloudsReverbProcessor()
+{
+    parameters.removeParameterListener("amount", this);
+    parameters.removeParameterListener("input_gain", this);
+    parameters.removeParameterListener("time", this);
+    parameters.removeParameterListener("diffusion", this);
+    parameters.removeParameterListener("lp", this);
+}
+
+const juce::String CloudsReverbProcessor::getName() const
+{
+    return JucePlugin_Name;
+}
+
+bool CloudsReverbProcessor::acceptsMidi() const { return false; }
+bool CloudsReverbProcessor::producesMidi() const { return false; }
+bool CloudsReverbProcessor::isMidiEffect() const { return false; }
+double CloudsReverbProcessor::getTailLengthSeconds() const { return 5.0; }
+
+int CloudsReverbProcessor::getNumPrograms() { return 1; }
+int CloudsReverbProcessor::getCurrentProgram() { return 0; }
+void CloudsReverbProcessor::setCurrentProgram(int) {}
+const juce::String CloudsReverbProcessor::getProgramName(int) { return {}; }
+void CloudsReverbProcessor::changeProgramName(int, const juce::String&) {}
+
+void CloudsReverbProcessor::prepareToPlay(double sampleRate, int)
+{
+    reverb.Init(static_cast<float>(sampleRate));
+    reverb.SetAmount(*amountParam);
+    reverb.SetInputGain(*inputGainParam);
+    reverb.SetTime(*timeParam);
+    reverb.SetDiffusion(*diffusionParam);
+    reverb.SetLowpassCutoff(*lpParam);
+}
+
+void CloudsReverbProcessor::releaseResources()
+{
+    reverb.Clear();
+}
+
+bool CloudsReverbProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
+{
+    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+        return false;
+
+    if (layouts.getMainInputChannelSet() != juce::AudioChannelSet::stereo())
+        return false;
+
+    return true;
+}
+
+void CloudsReverbProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
+{
+    juce::ScopedNoDenormals noDenormals;
+
+    auto* leftChannel = buffer.getWritePointer(0);
+    auto* rightChannel = buffer.getWritePointer(1);
+
+    reverb.Process(leftChannel, rightChannel, static_cast<size_t>(buffer.getNumSamples()));
+}
+
+bool CloudsReverbProcessor::hasEditor() const { return true; }
+
+juce::AudioProcessorEditor* CloudsReverbProcessor::createEditor()
+{
+    return new CloudsReverbEditor(*this);
+}
+
+void CloudsReverbProcessor::getStateInformation(juce::MemoryBlock& destData)
+{
+    auto state = parameters.copyState();
+    std::unique_ptr<juce::XmlElement> xml(state.createXml());
+    copyXmlToBinary(*xml, destData);
+}
+
+void CloudsReverbProcessor::setStateInformation(const void* data, int sizeInBytes)
+{
+    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+    if (xmlState.get() != nullptr)
+        if (xmlState->hasTagName(parameters.state.getType()))
+            parameters.replaceState(juce::ValueTree::fromXml(*xmlState));
+}
+
+void CloudsReverbProcessor::parameterChanged(const juce::String& parameterID, float newValue)
+{
+    if (parameterID == "amount")
+        reverb.SetAmount(newValue);
+    else if (parameterID == "input_gain")
+        reverb.SetInputGain(newValue);
+    else if (parameterID == "time")
+        reverb.SetTime(newValue);
+    else if (parameterID == "diffusion")
+        reverb.SetDiffusion(newValue);
+    else if (parameterID == "lp")
+        reverb.SetLowpassCutoff(newValue);
+}
+
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+{
+    return new CloudsReverbProcessor();
+}

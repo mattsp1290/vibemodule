@@ -34,9 +34,9 @@ option(VIBEMODULE_BUILD_TESTS "Build unit tests" ON)
 add_subdirectory(libs/clouds-dsp)
 
 # Platform-specific builds
-# if(VIBEMODULE_BUILD_JUCE)
-#     add_subdirectory(platforms/juce)
-# endif()
+if(VIBEMODULE_BUILD_JUCE)
+    add_subdirectory(platforms/juce)
+endif()
 
 # if(VIBEMODULE_BUILD_SSP)
 #     add_subdirectory(platforms/ssp)
