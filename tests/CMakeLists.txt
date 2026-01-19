@@ -17,6 +17,7 @@ include(Catch)
 # Create test executable
 add_executable(vibemodule_tests
     test_clouds_reverb.cpp
+    test_stmlib_dsp.cpp
 )
 
 target_link_libraries(vibemodule_tests
